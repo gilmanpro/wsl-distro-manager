@@ -11,11 +11,11 @@
 
 | Repositorio | Descripción |
 |---|---|
-| **[wsl-port](https://github.com/gilmanpro/wsl-port)** | ⭐ **App unificada** — WSL Manager + Port Forwarder en 1 clic (recomendada) |
-| **wsl-manager-gui** (este repo) | Base de gestión WSL — vendored en wsl-port |
-| [port-forwarder-app](https://github.com/gilmanpro/port-forwarder-app) | Base de port forwarding — vendored en wsl-port |
+| **[wsl-port-unified](https://github.com/gilmanpro/wsl-port-unified)** | ⭐ **App unificada** — WSL Manager + Port Forwarder en 1 clic (recomendada) |
+| **wsl-distro-manager** (este repo) | Base de gestión WSL — vendored en wsl-port |
+| [portforward-tunnels](https://github.com/gilmanpro/portforward-tunnels) | Base de port forwarding — vendored en wsl-port |
 
-> **Recomendado:** usa **[wsl-port](https://github.com/gilmanpro/wsl-port)** que unifica ambas bases. Este repo sigue siendo útil de forma independiente y coexiste con port-forwarder-app (puertos propios).
+> **Recomendado:** usa **[wsl-port-unified](https://github.com/gilmanpro/wsl-port-unified)** que unifica ambas bases. Este repo sigue siendo útil de forma independiente y coexiste con portforward-tunnels (puertos propios).
 
 ---
 
@@ -46,8 +46,8 @@
 ## Instalación
 
 ```bash
-git clone https://github.com/gilmanpro/wsl-manager-gui
-cd wsl-manager-gui
+git clone https://github.com/gilmanpro/wsl-distro-manager
+cd wsl-distro-manager
 python -m venv .venv
 .venv\Scripts\activate
 
@@ -163,7 +163,7 @@ wsl-manager mcp serve               # servidor stdio (JSON-RPC)
   `secrets.json` — nunca queda en claro en `config.json`. Fuera de Windows se
   usa un fallback XOR solo para dev/test.
 - Headers de seguridad (nosniff, `X-Frame-Options`, CSP) en el panel web.
-- **Coexistencia:** port-forwarder-app usa puertos propios (8794 web, 8795 API,
+- **Coexistencia:** portforward-tunnels usa puertos propios (8794 web, 8795 API,
   8796 MCP), así que ambas apps pueden correr a la vez en la misma máquina.
 
 ## Tests
@@ -236,7 +236,7 @@ Pasos para quitar **toda** huella de la app en Windows. Ejecuta en PowerShell
 
 6. **Borrar el entorno virtual** (si instalaste desde el código):
    ```powershell
-   Remove-Item ".\proyectos\wsl-manager-gui\.venv" -Recurse -Force
+   Remove-Item ".\proyectos\wsl-distro-manager\.venv" -Recurse -Force
    ```
 
 7. **Verificar que no queda nada**:
@@ -246,7 +246,7 @@ Pasos para quitar **toda** huella de la app en Windows. Ejecuta en PowerShell
    Test-Path "$env:APPDATA\WSLManager"                              # False
    ```
 
-> El código fuente (`proyectos\wsl-manager-gui`) y los repos de GitHub se
+> El código fuente (`proyectos\wsl-distro-manager`) y los repos de GitHub se
 > conservan; puedes reinstalar cuando quieras siguiendo la sección
 > [Instalación](#instalación).
 
@@ -258,7 +258,7 @@ Pasos para quitar **toda** huella de la app en Windows. Ejecuta en PowerShell
 4. Envía un pull request describiendo el cambio.
 
 Reporta bugs o pide funciones en
-[Issues](https://github.com/gilmanpro/wsl-manager-gui/issues).
+[Issues](https://github.com/gilmanpro/wsl-distro-manager/issues).
 
 ## Licencia
 
