@@ -1,4 +1,4 @@
-# WSL Manager (GUI)
+# WSL Distro Manager (GUI)
 
 [![Licencia](https://img.shields.io/badge/Licencia-MIT-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
