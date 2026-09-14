@@ -13,6 +13,7 @@ Prevencion de WSL colgado (causa raiz):
 """
 from __future__ import annotations
 
+import logging
 import os
 import subprocess
 import sys
@@ -27,6 +28,10 @@ _WSL_LOCK = threading.Lock()
 _BREAKER_OPEN = False
 _BREAKER_UNTIL = 0.0
 _BREAKER_COOLDOWN = 30.0  # segundos con el cortocircuito abierto
+_BREAKER_MAX_COOLDOWN = 300.0
+_BREAKER_STRIKES = 0
+_SOFT_RECOVERY_AFTER = 3   # fallos seguidos antes de wsl --shutdown
+_last_cooldown = _BREAKER_COOLDOWN
 
 
 def _is_wsl(args: list[str]) -> bool:
@@ -47,10 +52,34 @@ def _breaker_check() -> bool:
     return True
 
 
+def _soft_recovery() -> None:
+    """Recuperacion suave tras varios timeouts seguidos: 'wsl --shutdown'
+    con watchdog, para destrabar la cola de wslservice (probes/holders
+    colgados). Nunca se llama en el camino feliz."""
+    if sys.platform != "win32":
+        return
+    logging.getLogger("wslmanager.subprocess").warning(
+        "WSL sigue sin responder: recuperacion suave "
+        "(wsl --shutdown con watchdog)")
+    try:
+        subprocess.run(["wsl.exe", "--shutdown"],
+                       capture_output=True, timeout=45,
+                       creationflags=_CREATE_NO_WINDOW)
+    except Exception:
+        pass
+
+
 def _breaker_open_now() -> None:
-    global _BREAKER_OPEN, _BREAKER_UNTIL
+    global _BREAKER_OPEN, _BREAKER_UNTIL, _BREAKER_STRIKES, _last_cooldown
+    _BREAKER_STRIKES += 1
+    # Cooldown progresivo 30->60->120->240->300: deja respirar a un
+    # wslservice atrancado en vez de martillarlo cada 30s.
+    _last_cooldown = min(_BREAKER_COOLDOWN * (2 ** (_BREAKER_STRIKES - 1)),
+                         _BREAKER_MAX_COOLDOWN)
     _BREAKER_OPEN = True
-    _BREAKER_UNTIL = time.time() + _BREAKER_COOLDOWN
+    _BREAKER_UNTIL = time.time() + _last_cooldown
+    if _BREAKER_STRIKES == _SOFT_RECOVERY_AFTER:
+        _soft_recovery()
 
 
 def _kill_tree(pid: int) -> None:
@@ -124,10 +153,11 @@ def run(args: list[str], timeout: float = 10.0, cwd: str | None = None,
         # wsl.exe escribe los errores en stdout (UTF-16) con rc != 0
         stderr, stdout = stdout, ""
     if is_wsl and ok:
-        # WSL respondio: cerrar cortocircuito (si estaba abierto)
-        global _BREAKER_OPEN, _BREAKER_UNTIL
+        # WSL respondio: cerrar cortocircuito y reiniciar la escalada
+        global _BREAKER_OPEN, _BREAKER_UNTIL, _BREAKER_STRIKES
         _BREAKER_OPEN = False
         _BREAKER_UNTIL = 0.0
+        _BREAKER_STRIKES = 0
     return CommandResult(
         ok=ok,
         output=stdout,
@@ -138,9 +168,11 @@ def run(args: list[str], timeout: float = 10.0, cwd: str | None = None,
 
 def reset_breaker() -> None:
     """Cierra el cortocircuito manualmente (tras un reinicio de WSL)."""
-    global _BREAKER_OPEN, _BREAKER_UNTIL
+    global _BREAKER_OPEN, _BREAKER_UNTIL, _BREAKER_STRIKES, _last_cooldown
     _BREAKER_OPEN = False
     _BREAKER_UNTIL = 0.0
+    _BREAKER_STRIKES = 0
+    _last_cooldown = _BREAKER_COOLDOWN
 
 
 def breaker_state() -> dict:
@@ -148,7 +180,8 @@ def breaker_state() -> dict:
     return {
         "open": _BREAKER_OPEN,
         "until": _BREAKER_UNTIL,
-        "cooldown": _BREAKER_COOLDOWN,
+        "cooldown": _last_cooldown,
+        "strikes": _BREAKER_STRIKES,
     }
 
 
